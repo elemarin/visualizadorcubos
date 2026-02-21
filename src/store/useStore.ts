@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from "uuid";
 export type Tool =
   | "ADD"
   | "REMOVE"
-  | "PAINT_SINGLE"
-  | "PAINT_FACE"
+  | "PAINT_TILE"
+  | "PAINT_GROUT"
   | "CAMERA_ORBIT";
 
 export type FaceKey = "px" | "nx" | "py" | "ny" | "pz" | "nz";
@@ -26,7 +26,9 @@ export interface SavedProject {
   groutGap: number;
   groutColor: string;
   floorColor: string;
-  favoriteColors: string[];
+  tileFavoriteColors: string[];
+  groutFavoriteColors: string[];
+  favoriteColors?: string[];
 }
 
 export interface AppState {
@@ -54,7 +56,13 @@ export interface AppState {
   groutGap: number;
   setGroutGap: (gap: number) => void;
   floorColor: string;
-  setFloorColor: (color: string) => void;
+
+  tileFavoriteColors: string[];
+  groutFavoriteColors: string[];
+  addTileFavoriteColor: (color: string) => void;
+  removeTileFavoriteColor: (color: string) => void;
+  addGroutFavoriteColor: (color: string) => void;
+  removeGroutFavoriteColor: (color: string) => void;
 
   favoriteColors: string[];
   addFavoriteColor: (color: string) => void;
@@ -97,13 +105,19 @@ function normalizeVoxel(input: Partial<Voxel> & { id: string; position: [number,
 }
 
 function normalizeProject(raw: SavedProject): SavedProject {
+  const legacyFavorites = raw.favoriteColors ?? [];
+  const tileFavoriteColors = raw.tileFavoriteColors ?? legacyFavorites;
+  const groutFavoriteColors = raw.groutFavoriteColors ?? [];
+
   return {
     ...raw,
     voxels: (raw.voxels ?? []).map((voxel) => normalizeVoxel(voxel)),
     groutGap: typeof raw.groutGap === "number" ? raw.groutGap : 0.05,
     groutColor: raw.groutColor ?? "#d6d3d1",
     floorColor: "#ffffff",
-    favoriteColors: raw.favoriteColors ?? [],
+    tileFavoriteColors,
+    groutFavoriteColors,
+    favoriteColors: undefined,
   };
 }
 
@@ -198,17 +212,38 @@ export const useStore = create<AppState>((set, get) => ({
   groutGap: 0.05,
   setGroutGap: (gap) => set({ groutGap: Math.max(0, Math.min(0.2, gap)) }),
   floorColor: "#ffffff",
-  setFloorColor: () => set({ floorColor: "#ffffff" }),
+
+  tileFavoriteColors: [],
+  groutFavoriteColors: [],
+  addTileFavoriteColor: (color) => {
+    const { tileFavoriteColors } = get();
+    if (!tileFavoriteColors.includes(color)) {
+      set({ tileFavoriteColors: [...tileFavoriteColors, color] });
+    }
+  },
+  removeTileFavoriteColor: (color) => {
+    set({ tileFavoriteColors: get().tileFavoriteColors.filter((entry) => entry !== color) });
+  },
+  addGroutFavoriteColor: (color) => {
+    const { groutFavoriteColors } = get();
+    if (!groutFavoriteColors.includes(color)) {
+      set({ groutFavoriteColors: [...groutFavoriteColors, color] });
+    }
+  },
+  removeGroutFavoriteColor: (color) => {
+    set({ groutFavoriteColors: get().groutFavoriteColors.filter((entry) => entry !== color) });
+  },
 
   favoriteColors: [],
   addFavoriteColor: (color) => {
-    const { favoriteColors } = get();
-    if (!favoriteColors.includes(color)) {
-      set({ favoriteColors: [...favoriteColors, color] });
+    const { tileFavoriteColors } = get();
+    if (!tileFavoriteColors.includes(color)) {
+      set({ tileFavoriteColors: [...tileFavoriteColors, color], favoriteColors: [...tileFavoriteColors, color] });
     }
   },
   removeFavoriteColor: (color) => {
-    set({ favoriteColors: get().favoriteColors.filter((entry) => entry !== color) });
+    const filtered = get().tileFavoriteColors.filter((entry) => entry !== color);
+    set({ tileFavoriteColors: filtered, favoriteColors: filtered });
   },
 
   tileSize: [1, 1, 1],
@@ -217,7 +252,16 @@ export const useStore = create<AppState>((set, get) => ({
   savedProjects: [],
 
   saveProject: (name) => {
-    const { voxels, tileSize, groutGap, groutColor, favoriteColors, savedProjects } = get();
+    const {
+      voxels,
+      tileSize,
+      groutGap,
+      groutColor,
+      tileFavoriteColors,
+      groutFavoriteColors,
+      savedProjects,
+    } = get();
+
     const project: SavedProject = {
       id: uuidv4(),
       name,
@@ -227,8 +271,10 @@ export const useStore = create<AppState>((set, get) => ({
       groutGap,
       groutColor,
       floorColor: "#ffffff",
-      favoriteColors,
+      tileFavoriteColors,
+      groutFavoriteColors,
     };
+
     const updated = [project, ...savedProjects];
     writeProjects(updated);
     set({ savedProjects: updated });
@@ -244,8 +290,9 @@ export const useStore = create<AppState>((set, get) => ({
       tileSize: normalized.tileSize,
       groutGap: normalized.groutGap,
       groutColor: normalized.groutColor,
-      floorColor: "#ffffff",
-      favoriteColors: normalized.favoriteColors,
+      tileFavoriteColors: normalized.tileFavoriteColors,
+      groutFavoriteColors: normalized.groutFavoriteColors,
+      favoriteColors: normalized.tileFavoriteColors,
     });
   },
 
@@ -256,6 +303,7 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   loadProjectsFromStorage: () => {
-    set({ savedProjects: readProjects() });
+    const projects = readProjects();
+    set({ savedProjects: projects });
   },
 }));

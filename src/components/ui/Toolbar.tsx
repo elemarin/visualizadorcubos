@@ -11,8 +11,8 @@ interface ToolButton {
 const TOOLS: ToolButton[] = [
   { tool: "ADD", label: "Agregar", icon: "➕" },
   { tool: "REMOVE", label: "Quitar", icon: "➖" },
-  { tool: "PAINT_SINGLE", label: "Pintar Pieza", icon: "🎨" },
-  { tool: "PAINT_FACE", label: "Pintar Cara", icon: "🪣" },
+  { tool: "PAINT_TILE", label: "Pintar Tile", icon: "🎨" },
+  { tool: "PAINT_GROUT", label: "Pintar Fragua", icon: "🧱" },
   { tool: "CAMERA_ORBIT", label: "Rotar Cámara", icon: "🔄" },
 ];
 

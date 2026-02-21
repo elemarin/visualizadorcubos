@@ -18,8 +18,8 @@ const Scene = dynamic(() => import("@/components/three/Scene"), {
 const TOOL_LABELS: Record<string, string> = {
   ADD: "➕ Agregar",
   REMOVE: "➖ Quitar",
-  PAINT_SINGLE: "🎨 Pintar Pieza",
-  PAINT_FACE: "🪣 Pintar Cara",
+  PAINT_TILE: "🎨 Pintar Tile",
+  PAINT_GROUT: "🧱 Pintar Fragua",
   CAMERA_ORBIT: "🔄 Rotar Cámara",
 };
 

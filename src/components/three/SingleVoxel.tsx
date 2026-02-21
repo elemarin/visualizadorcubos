@@ -137,12 +137,7 @@ export function SingleVoxel({ voxel }: SingleVoxelProps) {
         addVoxel(newPos);
       } else if (activeTool === "REMOVE") {
         removeVoxel(voxel.id);
-      } else if (activeTool === "PAINT_SINGLE") {
-        if (!e.face) return;
-        const worldNormal = e.face.normal.clone().transformDirection(e.object.matrixWorld);
-        const faceKey = getFaceKeyFromNormal(worldNormal);
-        paintVoxelFace(voxel.id, faceKey, activeColor);
-      } else if (activeTool === "PAINT_FACE") {
+      } else if (activeTool === "PAINT_TILE") {
         if (!e.face) return;
         const normal = e.face.normal.clone();
         const worldNormal = normal.transformDirection(
@@ -151,7 +146,11 @@ export function SingleVoxel({ voxel }: SingleVoxelProps) {
 
         const positions = floodFillFace(voxel, worldNormal, voxels, tileSize);
         const faceKey = getFaceKeyFromNormal(worldNormal);
-        paintFaceRegion(faceKey, positions, activeColor);
+        if (positions.length <= 1) {
+          paintVoxelFace(voxel.id, faceKey, activeColor);
+        } else {
+          paintFaceRegion(faceKey, positions, activeColor);
+        }
       }
     },
     [
