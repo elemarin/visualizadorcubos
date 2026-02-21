@@ -5,79 +5,6 @@ import { ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { FaceKey, useStore, Voxel } from "@/store/useStore";
 
-/**
- * Flood-fill helper for PAINT_FACE.
- * Given a clicked voxel, determine the face normal direction,
- * then find all contiguous voxels on the same plane sharing
- * the same axis-aligned face.
- */
-function floodFillFace(
-  startVoxel: Voxel,
-  faceNormal: THREE.Vector3,
-  allVoxels: Voxel[],
-  tileSize: [number, number, number]
-): [number, number, number][] {
-  // Determine which axis the face belongs to
-  const absX = Math.abs(faceNormal.x);
-  const absY = Math.abs(faceNormal.y);
-  const absZ = Math.abs(faceNormal.z);
-
-  let fixedAxis: "x" | "y" | "z";
-  if (absX > absY && absX > absZ) fixedAxis = "x";
-  else if (absY > absX && absY > absZ) fixedAxis = "y";
-  else fixedAxis = "z";
-
-  const axisIndex = fixedAxis === "x" ? 0 : fixedAxis === "y" ? 1 : 2;
-  const fixedValue = startVoxel.position[axisIndex];
-
-  // Filter voxels that share the same fixed-axis value (same plane)
-  const planeVoxels = allVoxels.filter(
-    (v) => Math.abs(v.position[axisIndex] - fixedValue) < 0.01
-  );
-
-  // Additionally, for the face to be an exposed face, there must not be a
-  // neighbor voxel in the normal direction.
-  const normalDir: [number, number, number] = [0, 0, 0];
-  normalDir[axisIndex] = faceNormal.x || faceNormal.y || faceNormal.z;
-
-  const allPosSet = new Set(allVoxels.map((v) => v.position.join(",")));
-
-  const exposedPlaneVoxels = planeVoxels.filter((v) => {
-    const neighborPos: [number, number, number] = [...v.position];
-    neighborPos[axisIndex] += normalDir[axisIndex] > 0 ? tileSize[axisIndex] : -tileSize[axisIndex];
-    return !allPosSet.has(neighborPos.join(","));
-  });
-
-  // BFS flood-fill among exposed plane voxels via adjacency
-  const exposedSet = new Set(exposedPlaneVoxels.map((v) => v.position.join(",")));
-  const visited = new Set<string>();
-  const result: [number, number, number][] = [];
-
-  const queue: [number, number, number][] = [startVoxel.position];
-  visited.add(startVoxel.position.join(","));
-
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    result.push(current);
-
-    // Check 4 neighbors on the plane (the two non-fixed axes)
-    const axes = [0, 1, 2].filter((i) => i !== axisIndex);
-    for (const ax of axes) {
-      for (const dir of [-1, 1]) {
-        const neighbor: [number, number, number] = [...current];
-        neighbor[ax] += dir * tileSize[ax];
-        const key = neighbor.join(",");
-        if (exposedSet.has(key) && !visited.has(key)) {
-          visited.add(key);
-          queue.push(neighbor);
-        }
-      }
-    }
-  }
-
-  return result;
-}
-
 function getFaceKeyFromNormal(normal: THREE.Vector3): FaceKey {
   const absX = Math.abs(normal.x);
   const absY = Math.abs(normal.y);
@@ -102,12 +29,10 @@ export function SingleVoxel({ voxel }: SingleVoxelProps) {
   const addVoxel = useStore((s) => s.addVoxel);
   const removeVoxel = useStore((s) => s.removeVoxel);
   const paintVoxelFace = useStore((s) => s.paintVoxelFace);
-  const paintFaceRegion = useStore((s) => s.paintFaceRegion);
   const activeColor = useStore((s) => s.activeColor);
   const groutColor = useStore((s) => s.groutColor);
   const groutGap = useStore((s) => s.groutGap);
   const tileSize = useStore((s) => s.tileSize);
-  const voxels = useStore((s) => s.voxels);
   const setPreviewPosition = useStore((s) => s.setPreviewPosition);
 
   const getAdjacentPosition = useCallback(
@@ -144,13 +69,8 @@ export function SingleVoxel({ voxel }: SingleVoxelProps) {
           e.object.matrixWorld
         );
 
-        const positions = floodFillFace(voxel, worldNormal, voxels, tileSize);
         const faceKey = getFaceKeyFromNormal(worldNormal);
-        if (positions.length <= 1) {
-          paintVoxelFace(voxel.id, faceKey, activeColor);
-        } else {
-          paintFaceRegion(faceKey, positions, activeColor);
-        }
+        paintVoxelFace(voxel.id, faceKey, activeColor);
       }
     },
     [
@@ -158,11 +78,8 @@ export function SingleVoxel({ voxel }: SingleVoxelProps) {
       addVoxel,
       removeVoxel,
       paintVoxelFace,
-      paintFaceRegion,
       activeColor,
-      tileSize,
       voxel,
-      voxels,
       getAdjacentPosition,
     ]
   );
