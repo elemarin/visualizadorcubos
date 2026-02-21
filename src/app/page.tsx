@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 const Scene = dynamic(() => import("@/components/three/Scene"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-gray-900 text-gray-400 text-sm">
+    <div className="flex h-full w-full items-center justify-center bg-secondary/70 text-muted-foreground text-sm">
       Cargando escena 3D…
     </div>
   ),
@@ -34,14 +34,14 @@ export default function HomePage() {
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
 
   return (
-    <main className="relative h-screen w-full overflow-hidden bg-[radial-gradient(circle_at_top,#1f2937,#0a0a0f_45%)]">
+    <main className="relative h-screen w-full overflow-hidden bg-[radial-gradient(circle_at_top_left,oklch(0.98_0.04_305),oklch(0.95_0.03_260)_45%,oklch(0.92_0.05_335)_100%)]">
       <div
         className={cn(
           "pointer-events-none absolute inset-y-0 left-0 z-40 hidden w-90 transition-transform duration-300 md:block",
           desktopSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="pointer-events-auto h-full p-3">
+        <div className="pointer-events-auto h-full p-4">
           <SettingsSidebar />
         </div>
       </div>
@@ -55,10 +55,10 @@ export default function HomePage() {
         <Scene />
       </div>
 
-      <div className="fixed top-3 left-3 z-50 md:hidden">
+      <div className="fixed top-4 left-4 z-50 md:hidden">
         <Sheet>
           <SheetTrigger asChild>
-            <Button size="icon" className="size-11 rounded-full shadow-lg">
+            <Button size="icon" className="size-11 rounded-full border border-border/80 bg-card/95 shadow-lg backdrop-blur">
               <Menu className="size-5" />
               <span className="sr-only">Abrir menú</span>
             </Button>
@@ -70,11 +70,11 @@ export default function HomePage() {
         </Sheet>
       </div>
 
-      <div className="fixed top-3 left-3 z-50 hidden md:block">
+      <div className="fixed top-4 left-4 z-50 hidden md:block">
         <Button
           variant="secondary"
           size="icon"
-          className="size-10 rounded-full shadow-md"
+          className="size-10 rounded-full border border-border/80 bg-card/90 shadow-md backdrop-blur"
           onClick={() => setDesktopSidebarOpen((value) => !value)}
         >
           {desktopSidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
@@ -84,7 +84,7 @@ export default function HomePage() {
 
       <Toolbar />
 
-      <div className="fixed top-3 right-3 z-50 rounded-full border bg-background/90 px-4 py-2 text-xs text-muted-foreground shadow-lg backdrop-blur">
+      <div className="fixed top-4 right-4 z-50 rounded-full border border-border/80 bg-card/90 px-4 py-2 text-xs text-muted-foreground shadow-lg backdrop-blur">
         <span className="font-medium text-foreground">{TOOL_LABELS[activeTool]}</span>
         <span className="mx-2 text-muted-foreground/60">•</span>
         <span>{count} piezas</span>

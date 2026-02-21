@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Dialog,
   DialogContent,
@@ -196,174 +198,183 @@ export default function SettingsSidebar() {
 
   return (
     <>
-      <aside className="flex h-full flex-col rounded-2xl border bg-card/95 text-card-foreground shadow-2xl backdrop-blur-md">
-        <div className="space-y-2 border-b px-5 py-4">
+      <aside className="flex h-full flex-col rounded-3xl border border-border/70 bg-card/90 text-card-foreground shadow-xl backdrop-blur-xl">
+        <div className="space-y-2.5 border-b border-border/70 px-6 py-5">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold">Editor Cerámico 3D</h1>
-            <Badge variant="secondary">Beta UI</Badge>
+            <h1 className="text-xl font-semibold tracking-tight">Editor Cerámico 3D</h1>
+            <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px]">
+              Beta UI
+            </Badge>
           </div>
-          <p className="text-xs text-muted-foreground">Herramientas, colores y gestión del proyecto.</p>
+          <p className="text-sm text-muted-foreground">Herramientas, colores y gestión del proyecto.</p>
         </div>
 
         <ScrollArea className="h-full">
-          <div className="space-y-4 p-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Herramientas</CardTitle>
+          <div className="space-y-5 p-5">
+            <Card className="gap-4 rounded-2xl border-border/70 bg-card/95 py-5 shadow-sm">
+              <CardHeader className="pb-0">
+                <CardTitle className="text-base">Herramientas</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 gap-2">
+              <CardContent className="grid grid-cols-1 gap-2.5">
                 {TOOL_BUTTONS.map((item) => (
                   <Button
                     key={item.id}
                     variant={activeTool === item.id ? "default" : "secondary"}
-                    className="justify-start"
+                    className="h-11 justify-start rounded-xl px-3 text-sm shadow-sm"
                     onClick={() => handleToolClick(item.id)}
                   >
                     <span className="text-base leading-none">{item.icon}</span>
                     {item.label}
                   </Button>
                 ))}
-                <p className="pt-1 text-[11px] text-muted-foreground">
+                <p className="pt-1 text-xs text-muted-foreground">
                   Pintar Tile y Pintar Fragua abren su selector. Guarda para aplicar.
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Favoritos</CardTitle>
+            <Card className="gap-3 rounded-2xl border-border/70 bg-card/95 py-4 shadow-sm">
+              <CardHeader className="pb-0">
+                <CardTitle className="text-base">Ajustes</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-medium">Tile</span>
-                    <Button size="xs" variant="outline" onClick={() => addTileFavoriteColor(activeColor)}>
-                      + Actual
-                    </Button>
-                  </div>
-                  {tileFavoriteColors.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Sin favoritos de tile.</p>
-                  ) : (
-                    <div className="grid grid-cols-8 gap-1.5">
-                      {tileFavoriteColors.map((color) => (
-                        <button
-                          key={`tile-${color}`}
-                          onClick={() => setActiveColor(color)}
-                          onContextMenu={(event) => {
-                            event.preventDefault();
-                            removeTileFavoriteColor(color);
-                          }}
-                          className="h-7 rounded-md border"
-                          style={{ backgroundColor: color }}
-                          title={`${color} (clic derecho elimina)`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
+              <CardContent className="pt-0">
+                <Accordion type="multiple" defaultValue={["favorites", "grout", "dimensions"]}>
+                  <AccordionItem value="favorites">
+                    <AccordionTrigger className="text-sm">Favoritos</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="mb-2.5 flex items-center justify-between">
+                            <span className="text-xs font-semibold text-muted-foreground">Tile</span>
+                            <Button size="xs" variant="outline" onClick={() => addTileFavoriteColor(activeColor)}>
+                              + Actual
+                            </Button>
+                          </div>
+                          {tileFavoriteColors.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Sin favoritos de tile.</p>
+                          ) : (
+                            <div className="grid grid-cols-8 gap-2">
+                              {tileFavoriteColors.map((color) => (
+                                <button
+                                  key={`tile-${color}`}
+                                  onClick={() => setActiveColor(color)}
+                                  onContextMenu={(event) => {
+                                    event.preventDefault();
+                                    removeTileFavoriteColor(color);
+                                  }}
+                                  className="h-8 rounded-lg border border-white/50 shadow-sm"
+                                  style={{ backgroundColor: color }}
+                                  title={`${color} (clic derecho elimina)`}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
-                <Separator />
+                        <Separator />
 
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-medium">Fragua</span>
-                    <Button size="xs" variant="outline" onClick={() => addGroutFavoriteColor(groutColor)}>
-                      + Actual
-                    </Button>
-                  </div>
-                  {groutFavoriteColors.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Sin favoritos de fragua.</p>
-                  ) : (
-                    <div className="grid grid-cols-8 gap-1.5">
-                      {groutFavoriteColors.map((color) => (
-                        <button
-                          key={`grout-${color}`}
-                          onClick={() => setGroutColor(color)}
-                          onContextMenu={(event) => {
-                            event.preventDefault();
-                            removeGroutFavoriteColor(color);
-                          }}
-                          className="h-7 rounded-md border"
-                          style={{ backgroundColor: color }}
-                          title={`${color} (clic derecho elimina)`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        <div>
+                          <div className="mb-2.5 flex items-center justify-between">
+                            <span className="text-xs font-semibold text-muted-foreground">Fragua</span>
+                            <Button size="xs" variant="outline" onClick={() => addGroutFavoriteColor(groutColor)}>
+                              + Actual
+                            </Button>
+                          </div>
+                          {groutFavoriteColors.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Sin favoritos de fragua.</p>
+                          ) : (
+                            <div className="grid grid-cols-8 gap-2">
+                              {groutFavoriteColors.map((color) => (
+                                <button
+                                  key={`grout-${color}`}
+                                  onClick={() => setGroutColor(color)}
+                                  onContextMenu={(event) => {
+                                    event.preventDefault();
+                                    removeGroutFavoriteColor(color);
+                                  }}
+                                  className="h-8 rounded-lg border border-white/50 shadow-sm"
+                                  style={{ backgroundColor: color }}
+                                  title={`${color} (clic derecho elimina)`}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="grout">
+                    <AccordionTrigger className="text-sm">Fragua</AccordionTrigger>
+                    <AccordionContent>
+                      <label className="text-xs font-semibold text-muted-foreground">Separación</label>
+                      <Slider
+                        min={0}
+                        max={0.2}
+                        step={0.005}
+                        value={[groutGap]}
+                        onValueChange={(values) => setGroutGap(values[0] ?? 0)}
+                        className="mt-3"
+                      />
+                      <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
+                        <span>0%</span>
+                        <span>{Math.round(groutGap * 100)}%</span>
+                        <span>20%</span>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="dimensions">
+                    <AccordionTrigger className="text-sm">Dimensiones</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-3 gap-3">
+                        {(["X", "Y", "Z"] as const).map((axis, index) => (
+                          <div key={axis}>
+                            <label className="text-[11px] font-semibold text-muted-foreground">{axis}</label>
+                            <Input
+                              type="number"
+                              min={0.5}
+                              step={0.5}
+                              value={tileSize[index]}
+                              onChange={(event) => {
+                                const value = Math.max(0.5, Number(event.target.value) || 1);
+                                const nextSize: [number, number, number] = [...tileSize];
+                                nextSize[index] = value;
+                                setTileSize(nextSize);
+                              }}
+                              className="mt-1.5 h-9 rounded-lg"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Fragua</CardTitle>
+            <Card className="gap-4 rounded-2xl border-border/70 bg-card/95 py-5 shadow-sm">
+              <CardHeader className="pb-0">
+                <CardTitle className="text-base">Proyecto</CardTitle>
               </CardHeader>
-              <CardContent>
-                <label className="text-xs text-muted-foreground">Separación</label>
-                <input
-                  type="range"
-                  min={0}
-                  max={0.2}
-                  step={0.005}
-                  value={groutGap}
-                  onChange={(event) => setGroutGap(Number(event.target.value))}
-                  className="mt-2 w-full accent-primary"
-                />
-                <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
-                  <span>0%</span>
-                  <span>{Math.round(groutGap * 100)}%</span>
-                  <span>20%</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Dimensiones</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-3 gap-2">
-                {(["X", "Y", "Z"] as const).map((axis, index) => (
-                  <div key={axis}>
-                    <label className="text-[11px] text-muted-foreground">{axis}</label>
-                    <Input
-                      type="number"
-                      min={0.5}
-                      step={0.5}
-                      value={tileSize[index]}
-                      onChange={(event) => {
-                        const value = Math.max(0.5, Number(event.target.value) || 1);
-                        const nextSize: [number, number, number] = [...tileSize];
-                        nextSize[index] = value;
-                        setTileSize(nextSize);
-                      }}
-                      className="mt-1 h-8"
-                    />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Proyecto</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-3.5">
                 <div className="flex gap-2">
                   <Input
                     value={projectName}
                     onChange={(event) => setProjectName(event.target.value)}
                     placeholder="Nombre del diseño"
+                    className="h-10 rounded-xl"
                   />
-                  <Button onClick={handleSaveProject} disabled={voxels.length === 0}>
+                  <Button onClick={handleSaveProject} disabled={voxels.length === 0} className="h-10 rounded-xl px-5">
                     Guardar
                   </Button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={handleExportImage} variant="secondary">
+                  <Button onClick={handleExportImage} variant="secondary" className="h-10 rounded-xl">
                     Exportar PNG
                   </Button>
-                  <Button onClick={handleNewProject} variant="destructive">
+                  <Button onClick={handleNewProject} variant="destructive" className="h-10 rounded-xl">
                     Limpiar
                   </Button>
                 </div>
@@ -373,19 +384,19 @@ export default function SettingsSidebar() {
                     <p className="text-xs text-muted-foreground">Sin diseños guardados.</p>
                   ) : (
                     savedProjects.map((project) => (
-                      <div key={project.id} className="rounded-md border bg-muted/35 p-2">
+                      <div key={project.id} className="rounded-xl border border-border/70 bg-muted/45 p-3">
                         <p className="truncate text-xs font-medium">{project.name}</p>
                         <p className="mt-0.5 text-[10px] text-muted-foreground">
                           {new Date(project.date).toLocaleDateString("es-ES")} · {project.voxels.length} piezas
                         </p>
                         <div className="mt-2 flex gap-2">
-                          <Button size="sm" className="h-7 flex-1" onClick={() => loadProject(project.id)}>
+                          <Button size="sm" className="h-8 flex-1 rounded-lg" onClick={() => loadProject(project.id)}>
                             Cargar
                           </Button>
                           <Button
                             size="sm"
                             variant="destructive"
-                            className="h-7 flex-1"
+                            className="h-8 flex-1 rounded-lg"
                             onClick={() => deleteProject(project.id)}
                           >
                             Eliminar
