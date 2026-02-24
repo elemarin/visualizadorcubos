@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, Menu, PanelLeftClose, PanelLeftOpen, Pencil } from "lucide-react";
 import Toolbar from "@/components/ui/Toolbar";
 import SettingsSidebar from "@/components/ui/SettingsSidebar";
-import { useStore } from "@/store/useStore";
+import { DEFAULT_PROJECT_NAME, useStore } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -134,7 +134,7 @@ export default function HomePage() {
               onChange={(event) => setProjectNameDraft(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
-                  setProjectName(projectNameDraft.trim() || "Proyecto sin nombre");
+                  setProjectName(projectNameDraft.trim() || DEFAULT_PROJECT_NAME);
                   setEditingProjectName(false);
                 }
               }}
@@ -148,7 +148,7 @@ export default function HomePage() {
             className="size-7"
             onClick={() => {
               if (editingProjectName) {
-                setProjectName(projectNameDraft.trim() || "Proyecto sin nombre");
+                setProjectName(projectNameDraft.trim() || DEFAULT_PROJECT_NAME);
               }
               setEditingProjectName((value) => !value);
             }}

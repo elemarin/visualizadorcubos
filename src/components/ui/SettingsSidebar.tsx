@@ -79,6 +79,7 @@ const PRESET_GROUT_COLORS = [
   "#374151",
   "#1f2937",
 ];
+const PERSIST_DEBOUNCE_MS = 200;
 
 function mergePresetColors(favorites: string[], defaults: string[]): string[] {
   const set = new Set<string>();
@@ -124,7 +125,9 @@ export default function SettingsSidebar() {
   const [tempColor, setTempColor] = useState("#ffffff");
 
   useEffect(() => {
-    if (currentProjectId) persistCurrentProject();
+    if (!currentProjectId) return;
+    const timeout = window.setTimeout(() => persistCurrentProject(), PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeout);
   }, [
     currentProjectId,
     voxels,

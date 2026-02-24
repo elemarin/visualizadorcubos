@@ -87,7 +87,7 @@ export interface AppState {
 }
 
 const STORAGE_KEY = "voxel-builder-projects";
-const DEFAULT_PROJECT_NAME = "Proyecto sin nombre";
+export const DEFAULT_PROJECT_NAME = "Proyecto sin nombre";
 
 function createFaceColors(color: string): Record<FaceKey, string> {
   return {
