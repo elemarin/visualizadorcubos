@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
-import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, Menu, PanelLeftClose, PanelLeftOpen, Pencil } from "lucide-react";
 import Toolbar from "@/components/ui/Toolbar";
 import SettingsSidebar from "@/components/ui/SettingsSidebar";
 import { useStore } from "@/store/useStore";
@@ -33,7 +33,20 @@ export default function HomePage() {
   const voxels = useStore((s) => s.voxels);
   const tileSize = useStore((s) => s.tileSize);
   const activeTool = useStore((s) => s.activeTool);
+  const projectName = useStore((s) => s.projectName);
+  const setProjectName = useStore((s) => s.setProjectName);
+  const loadProjectsFromStorage = useStore((s) => s.loadProjectsFromStorage);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const [editingProjectName, setEditingProjectName] = useState(false);
+  const [projectNameDraft, setProjectNameDraft] = useState(projectName);
+
+  useEffect(() => {
+    loadProjectsFromStorage();
+  }, [loadProjectsFromStorage]);
+
+  useEffect(() => {
+    setProjectNameDraft(projectName);
+  }, [projectName]);
   const tileCounts = useMemo(() => {
     const toKey = (x: number, y: number, z: number) =>
       `${x.toFixed(POSITION_PRECISION)},${y.toFixed(POSITION_PRECISION)},${z.toFixed(POSITION_PRECISION)}`;
@@ -113,6 +126,37 @@ export default function HomePage() {
       <Toolbar />
 
       <div className="fixed top-4 right-4 z-50 min-w-45 rounded-2xl border border-border/80 bg-card/90 px-4 py-2 text-xs text-muted-foreground shadow-lg backdrop-blur">
+        <div className="flex items-center justify-between gap-2">
+          {editingProjectName ? (
+            <input
+              className="h-7 min-w-40 rounded-md border border-border bg-background px-2 text-xs text-foreground"
+              value={projectNameDraft}
+              onChange={(event) => setProjectNameDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  setProjectName(projectNameDraft.trim() || "Proyecto sin nombre");
+                  setEditingProjectName(false);
+                }
+              }}
+            />
+          ) : (
+            <p className="truncate text-sm font-semibold text-foreground">{projectName}</p>
+          )}
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7"
+            onClick={() => {
+              if (editingProjectName) {
+                setProjectName(projectNameDraft.trim() || "Proyecto sin nombre");
+              }
+              setEditingProjectName((value) => !value);
+            }}
+          >
+            {editingProjectName ? <Check className="size-3.5" /> : <Pencil className="size-3.5" />}
+            <span className="sr-only">Editar nombre del proyecto</span>
+          </Button>
+        </div>
         <div className="flex items-center">
           <span className="font-medium text-foreground">{TOOL_LABELS[activeTool]}</span>
           <span className="mx-2 text-muted-foreground/60">•</span>
