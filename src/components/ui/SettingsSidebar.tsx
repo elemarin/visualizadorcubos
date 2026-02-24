@@ -418,7 +418,11 @@ export default function SettingsSidebar() {
           if (!open) handleCancelPicker();
         }}
       >
-        <DialogContent className="max-w-95 p-4 sm:max-w-105" showCloseButton={false}>
+        <DialogContent
+          className="max-w-95 p-4 sm:max-w-105"
+          showCloseButton={false}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-base">{activePickerTitle}</DialogTitle>
             <DialogDescription>Ajusta color, luego presiona Guardar para aplicar.</DialogDescription>
