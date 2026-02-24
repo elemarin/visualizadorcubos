@@ -27,6 +27,7 @@ const TOOL_LABELS: Record<string, string> = {
   PAINT_GROUT: "🧱 Pintar Fragua",
   CAMERA_ORBIT: "🔄 Rotar Cámara",
 };
+const POSITION_PRECISION = 5;
 
 export default function HomePage() {
   const voxels = useStore((s) => s.voxels);
@@ -34,7 +35,8 @@ export default function HomePage() {
   const activeTool = useStore((s) => s.activeTool);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const tileCounts = useMemo(() => {
-    const toKey = (x: number, y: number, z: number) => `${x.toFixed(5)},${y.toFixed(5)},${z.toFixed(5)}`;
+    const toKey = (x: number, y: number, z: number) =>
+      `${x.toFixed(POSITION_PRECISION)},${y.toFixed(POSITION_PRECISION)},${z.toFixed(POSITION_PRECISION)}`;
     const voxelSet = new Set(voxels.map((voxel) => toKey(voxel.position[0], voxel.position[1], voxel.position[2])));
     const counts = new Map<string, number>();
     const directions: Array<{ face: "px" | "nx" | "py" | "pz" | "nz"; offset: [number, number, number] }> = [
