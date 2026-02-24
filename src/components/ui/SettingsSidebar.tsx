@@ -3,12 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ColorResult, SketchPicker } from "react-color";
 import { useStore, Tool } from "@/store/useStore";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
@@ -81,6 +79,7 @@ const PRESET_GROUT_COLORS = [
   "#374151",
   "#1f2937",
 ];
+const PERSIST_DEBOUNCE_MS = 200;
 
 function mergePresetColors(favorites: string[], defaults: string[]): string[] {
   const set = new Set<string>();
@@ -90,7 +89,6 @@ function mergePresetColors(favorites: string[], defaults: string[]): string[] {
 
 export default function SettingsSidebar() {
   const voxels = useStore((state) => state.voxels);
-  const setVoxels = useStore((state) => state.setVoxels);
 
   const activeTool = useStore((state) => state.activeTool);
   const setActiveTool = useStore((state) => state.setActiveTool);
@@ -113,20 +111,36 @@ export default function SettingsSidebar() {
 
   const tileSize = useStore((state) => state.tileSize);
   const setTileSize = useStore((state) => state.setTileSize);
+  const projectName = useStore((state) => state.projectName);
+  const currentProjectId = useStore((state) => state.currentProjectId);
+  const createNewProject = useStore((state) => state.createNewProject);
+  const clearCanvas = useStore((state) => state.clearCanvas);
+  const persistCurrentProject = useStore((state) => state.persistCurrentProject);
 
   const savedProjects = useStore((state) => state.savedProjects);
-  const saveProject = useStore((state) => state.saveProject);
   const loadProject = useStore((state) => state.loadProject);
   const deleteProject = useStore((state) => state.deleteProject);
-  const loadProjectsFromStorage = useStore((state) => state.loadProjectsFromStorage);
 
-  const [projectName, setProjectName] = useState("");
   const [pickerMode, setPickerMode] = useState<PickerMode>(null);
   const [tempColor, setTempColor] = useState("#ffffff");
 
   useEffect(() => {
-    loadProjectsFromStorage();
-  }, [loadProjectsFromStorage]);
+    if (!currentProjectId) return;
+    const timeout = window.setTimeout(() => persistCurrentProject(), PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeout);
+  }, [
+    currentProjectId,
+    voxels,
+    tileSize,
+    groutGap,
+    groutColor,
+    activeColor,
+    activeTool,
+    tileFavoriteColors,
+    groutFavoriteColors,
+    projectName,
+    persistCurrentProject,
+  ]);
 
   const tilePresetColors = useMemo(
     () => mergePresetColors(tileFavoriteColors, PRESET_TILE_COLORS),
@@ -177,21 +191,9 @@ export default function SettingsSidebar() {
     setPickerMode(null);
   }, []);
 
-  const handleSaveProject = useCallback(() => {
-    const name = projectName.trim() || `Diseño ${new Date().toLocaleDateString("es-ES")}`;
-    saveProject(name);
-    setProjectName("");
-  }, [projectName, saveProject]);
-
   const handleNewProject = useCallback(() => {
-    setVoxels([]);
-  }, [setVoxels]);
-
-  const handleExportImage = useCallback(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const exportFn = (window as any).__takeScreenshot;
-    if (exportFn) exportFn();
-  }, []);
+    createNewProject();
+  }, [createNewProject]);
 
   const activePickerTitle = pickerMode === "tile" ? "Selector de Color: Tile" : "Selector de Color: Fragua";
   const activeFavorites = pickerMode === "tile" ? tileFavoriteColors : groutFavoriteColors;
@@ -211,203 +213,126 @@ export default function SettingsSidebar() {
 
         <ScrollArea className="h-full">
           <div className="space-y-5 p-5">
-            <Card className="gap-4 rounded-2xl border-border/70 bg-card/95 py-5 shadow-sm">
-              <CardHeader className="pb-0">
-                <CardTitle className="text-base">Herramientas</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 gap-2.5">
-                {TOOL_BUTTONS.map((item) => (
-                  <Button
-                    key={item.id}
-                    variant={activeTool === item.id ? "default" : "secondary"}
-                    className="h-11 justify-start rounded-xl px-3 text-sm shadow-sm"
-                    onClick={() => handleToolClick(item.id)}
-                  >
-                    <span className="text-base leading-none">{item.icon}</span>
-                    {item.label}
-                  </Button>
-                ))}
-                <p className="pt-1 text-xs text-muted-foreground">
-                  Pintar Tile y Pintar Fragua abren su selector. Guarda para aplicar.
-                </p>
-              </CardContent>
-            </Card>
+            <Accordion type="multiple" defaultValue={["tools"]} className="space-y-4">
+              <AccordionItem value="tools" className="rounded-2xl border border-border/70 bg-card/95 px-4 shadow-sm">
+                <AccordionTrigger className="text-base">Herramientas</AccordionTrigger>
+                <AccordionContent className="grid grid-cols-1 gap-2.5 pb-4">
+                  {TOOL_BUTTONS.map((item) => (
+                    <Button
+                      key={item.id}
+                      variant={activeTool === item.id ? "default" : "secondary"}
+                      className="h-11 justify-start rounded-xl px-3 text-sm shadow-sm"
+                      onClick={() => handleToolClick(item.id)}
+                    >
+                      <span className="text-base leading-none">{item.icon}</span>
+                      {item.label}
+                    </Button>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
 
-            <Card className="gap-3 rounded-2xl border-border/70 bg-card/95 py-4 shadow-sm">
-              <CardHeader className="pb-0">
-                <CardTitle className="text-base">Ajustes</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Accordion type="multiple" defaultValue={["favorites", "grout", "dimensions"]}>
-                  <AccordionItem value="favorites">
-                    <AccordionTrigger className="text-sm">Favoritos</AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-4">
-                        <div>
-                          <div className="mb-2.5 flex items-center justify-between">
-                            <span className="text-xs font-semibold text-muted-foreground">Tile</span>
-                            <Button size="xs" variant="outline" onClick={() => addTileFavoriteColor(activeColor)}>
-                              + Actual
+              <AccordionItem value="settings" className="rounded-2xl border border-border/70 bg-card/95 px-4 shadow-sm">
+                <AccordionTrigger className="text-base">Ajustes</AccordionTrigger>
+                <AccordionContent className="space-y-4 pb-4">
+                  <div>
+                    <div className="mb-2.5 flex items-center justify-between">
+                      <label className="text-xs font-semibold text-muted-foreground">Color de fragua</label>
+                      <Button size="xs" variant="outline" onClick={openGroutPicker}>
+                        Cambiar
+                      </Button>
+                    </div>
+                    <button
+                      className="h-8 w-full rounded-lg border border-white/50 shadow-sm"
+                      style={{ backgroundColor: groutColor }}
+                      onClick={openGroutPicker}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Separación</label>
+                    <Slider
+                      min={0}
+                      max={0.2}
+                      step={0.005}
+                      value={[groutGap]}
+                      onValueChange={(values) => setGroutGap(values[0] ?? 0)}
+                      className="mt-3"
+                    />
+                    <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
+                      <span>0%</span>
+                      <span>{Math.round(groutGap * 100)}%</span>
+                      <span>20%</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Tamaño de tile</label>
+                    <div className="mt-2 grid grid-cols-3 gap-3">
+                      {(["X", "Y", "Z"] as const).map((axis, index) => (
+                        <div key={axis}>
+                          <label className="text-[11px] font-semibold text-muted-foreground">{axis}</label>
+                          <Input
+                            type="number"
+                            min={0.5}
+                            step={0.5}
+                            value={tileSize[index]}
+                            onChange={(event) => {
+                              const value = Math.max(0.5, Number(event.target.value) || 1);
+                              const nextSize: [number, number, number] = [...tileSize];
+                              nextSize[index] = value;
+                              setTileSize(nextSize);
+                            }}
+                            className="mt-1.5 h-9 rounded-lg"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="project" className="rounded-2xl border border-border/70 bg-card/95 px-4 shadow-sm">
+                <AccordionTrigger className="text-base">Proyecto</AccordionTrigger>
+                <AccordionContent className="space-y-3.5 pb-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button onClick={handleNewProject} className="h-10 rounded-xl">
+                      Nuevo proyecto
+                    </Button>
+                    <Button onClick={clearCanvas} variant="destructive" className="h-10 rounded-xl">
+                      Limpiar canvas
+                    </Button>
+                  </div>
+
+                  {savedProjects.length > 1 ? (
+                    <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
+                      {savedProjects.map((project) => (
+                        <div key={project.id} className="rounded-xl border border-border/70 bg-muted/45 p-3">
+                          <p className="truncate text-xs font-medium">
+                            {project.name} {project.id === currentProjectId ? "(actual)" : ""}
+                          </p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">
+                            {new Date(project.date).toLocaleDateString("es-ES")} · {project.voxels.length} piezas
+                          </p>
+                          <div className="mt-2 flex gap-2">
+                            <Button size="sm" className="h-8 flex-1 rounded-lg" onClick={() => loadProject(project.id)}>
+                              Cargar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="h-8 flex-1 rounded-lg"
+                              onClick={() => deleteProject(project.id)}
+                            >
+                              Eliminar
                             </Button>
                           </div>
-                          {tileFavoriteColors.length === 0 ? (
-                            <p className="text-xs text-muted-foreground">Sin favoritos de tile.</p>
-                          ) : (
-                            <div className="grid grid-cols-8 gap-2">
-                              {tileFavoriteColors.map((color) => (
-                                <button
-                                  key={`tile-${color}`}
-                                  onClick={() => setActiveColor(color)}
-                                  onContextMenu={(event) => {
-                                    event.preventDefault();
-                                    removeTileFavoriteColor(color);
-                                  }}
-                                  className="h-8 rounded-lg border border-white/50 shadow-sm"
-                                  style={{ backgroundColor: color }}
-                                  title={`${color} (clic derecho elimina)`}
-                                />
-                              ))}
-                            </div>
-                          )}
                         </div>
-
-                        <Separator />
-
-                        <div>
-                          <div className="mb-2.5 flex items-center justify-between">
-                            <span className="text-xs font-semibold text-muted-foreground">Fragua</span>
-                            <Button size="xs" variant="outline" onClick={() => addGroutFavoriteColor(groutColor)}>
-                              + Actual
-                            </Button>
-                          </div>
-                          {groutFavoriteColors.length === 0 ? (
-                            <p className="text-xs text-muted-foreground">Sin favoritos de fragua.</p>
-                          ) : (
-                            <div className="grid grid-cols-8 gap-2">
-                              {groutFavoriteColors.map((color) => (
-                                <button
-                                  key={`grout-${color}`}
-                                  onClick={() => setGroutColor(color)}
-                                  onContextMenu={(event) => {
-                                    event.preventDefault();
-                                    removeGroutFavoriteColor(color);
-                                  }}
-                                  className="h-8 rounded-lg border border-white/50 shadow-sm"
-                                  style={{ backgroundColor: color }}
-                                  title={`${color} (clic derecho elimina)`}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="grout">
-                    <AccordionTrigger className="text-sm">Fragua</AccordionTrigger>
-                    <AccordionContent>
-                      <label className="text-xs font-semibold text-muted-foreground">Separación</label>
-                      <Slider
-                        min={0}
-                        max={0.2}
-                        step={0.005}
-                        value={[groutGap]}
-                        onValueChange={(values) => setGroutGap(values[0] ?? 0)}
-                        className="mt-3"
-                      />
-                      <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-                        <span>0%</span>
-                        <span>{Math.round(groutGap * 100)}%</span>
-                        <span>20%</span>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="dimensions">
-                    <AccordionTrigger className="text-sm">Dimensiones</AccordionTrigger>
-                    <AccordionContent>
-                      <div className="grid grid-cols-3 gap-3">
-                        {(["X", "Y", "Z"] as const).map((axis, index) => (
-                          <div key={axis}>
-                            <label className="text-[11px] font-semibold text-muted-foreground">{axis}</label>
-                            <Input
-                              type="number"
-                              min={0.5}
-                              step={0.5}
-                              value={tileSize[index]}
-                              onChange={(event) => {
-                                const value = Math.max(0.5, Number(event.target.value) || 1);
-                                const nextSize: [number, number, number] = [...tileSize];
-                                nextSize[index] = value;
-                                setTileSize(nextSize);
-                              }}
-                              className="mt-1.5 h-9 rounded-lg"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </CardContent>
-            </Card>
-
-            <Card className="gap-4 rounded-2xl border-border/70 bg-card/95 py-5 shadow-sm">
-              <CardHeader className="pb-0">
-                <CardTitle className="text-base">Proyecto</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3.5">
-                <div className="flex gap-2">
-                  <Input
-                    value={projectName}
-                    onChange={(event) => setProjectName(event.target.value)}
-                    placeholder="Nombre del diseño"
-                    className="h-10 rounded-xl"
-                  />
-                  <Button onClick={handleSaveProject} disabled={voxels.length === 0} className="h-10 rounded-xl px-5">
-                    Guardar
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={handleExportImage} variant="secondary" className="h-10 rounded-xl">
-                    Exportar PNG
-                  </Button>
-                  <Button onClick={handleNewProject} variant="destructive" className="h-10 rounded-xl">
-                    Limpiar
-                  </Button>
-                </div>
-
-                <div className="space-y-1">
-                  {savedProjects.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Sin diseños guardados.</p>
-                  ) : (
-                    savedProjects.map((project) => (
-                      <div key={project.id} className="rounded-xl border border-border/70 bg-muted/45 p-3">
-                        <p className="truncate text-xs font-medium">{project.name}</p>
-                        <p className="mt-0.5 text-[10px] text-muted-foreground">
-                          {new Date(project.date).toLocaleDateString("es-ES")} · {project.voxels.length} piezas
-                        </p>
-                        <div className="mt-2 flex gap-2">
-                          <Button size="sm" className="h-8 flex-1 rounded-lg" onClick={() => loadProject(project.id)}>
-                            Cargar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="h-8 flex-1 rounded-lg"
-                            onClick={() => deleteProject(project.id)}
-                          >
-                            Eliminar
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                      ))}
+                    </div>
+                  ) : null}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         </ScrollArea>
       </aside>
