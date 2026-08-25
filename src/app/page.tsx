@@ -78,7 +78,7 @@ export default function HomePage() {
     <main className="relative h-screen w-full overflow-hidden bg-[radial-gradient(circle_at_top_left,oklch(0.98_0.04_305),oklch(0.95_0.03_260)_45%,oklch(0.92_0.05_335)_100%)]">
       <div
         className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 z-40 hidden w-90 transition-transform duration-300 md:block",
+          "pointer-events-none absolute inset-y-0 left-0 z-40 hidden w-80 transition-transform duration-300 lg:block",
           desktopSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -90,13 +90,13 @@ export default function HomePage() {
       <div
         className={cn(
           "absolute inset-y-0 right-0 left-0 transition-[left] duration-300",
-          desktopSidebarOpen ? "md:left-90" : "md:left-0"
+          desktopSidebarOpen ? "lg:left-80" : "lg:left-0"
         )}
       >
         <Scene />
       </div>
 
-      <div className="fixed top-4 left-4 z-50 md:hidden">
+      <div className="fixed top-4 left-4 z-50 lg:hidden">
         <Sheet>
           <SheetTrigger asChild>
             <Button size="icon" className="size-11 rounded-full border border-border/80 bg-card/95 shadow-lg backdrop-blur">
@@ -111,7 +111,7 @@ export default function HomePage() {
         </Sheet>
       </div>
 
-      <div className="fixed top-4 left-4 z-50 hidden md:block">
+      <div className="fixed top-4 left-4 z-50 hidden lg:block">
         <Button
           variant="secondary"
           size="icon"

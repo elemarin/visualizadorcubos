@@ -17,6 +17,11 @@ export interface Voxel {
   faceColors: Record<FaceKey, string>;
 }
 
+export interface FavoriteColor {
+  color: string;
+  name: string;
+}
+
 export interface SavedProject {
   id: string;
   name: string;
@@ -28,8 +33,8 @@ export interface SavedProject {
   floorColor: string;
   activeColor?: string;
   activeTool?: Tool;
-  tileFavoriteColors: string[];
-  groutFavoriteColors: string[];
+  tileFavoriteColors: FavoriteColor[];
+  groutFavoriteColors: FavoriteColor[];
   favoriteColors?: string[];
 }
 
@@ -59,11 +64,11 @@ export interface AppState {
   setGroutGap: (gap: number) => void;
   floorColor: string;
 
-  tileFavoriteColors: string[];
-  groutFavoriteColors: string[];
-  addTileFavoriteColor: (color: string) => void;
+  tileFavoriteColors: FavoriteColor[];
+  groutFavoriteColors: FavoriteColor[];
+  addTileFavoriteColor: (color: string, name: string) => void;
   removeTileFavoriteColor: (color: string) => void;
-  addGroutFavoriteColor: (color: string) => void;
+  addGroutFavoriteColor: (color: string, name: string) => void;
   removeGroutFavoriteColor: (color: string) => void;
 
   favoriteColors: string[];
@@ -115,8 +120,12 @@ function normalizeVoxel(input: Partial<Voxel> & { id: string; position: [number,
 
 function normalizeProject(raw: SavedProject): SavedProject {
   const legacyFavorites = raw.favoriteColors ?? [];
-  const tileFavoriteColors = raw.tileFavoriteColors ?? legacyFavorites;
-  const groutFavoriteColors = raw.groutFavoriteColors ?? [];
+  const normalizeFavorites = (favorites: Array<FavoriteColor | string>) =>
+    favorites.map((favorite) =>
+      typeof favorite === "string" ? { color: favorite, name: favorite } : favorite
+    );
+  const tileFavoriteColors = normalizeFavorites(raw.tileFavoriteColors ?? legacyFavorites);
+  const groutFavoriteColors = normalizeFavorites(raw.groutFavoriteColors ?? []);
 
   return {
     ...raw,
@@ -252,35 +261,38 @@ export const useStore = create<AppState>((set, get) => ({
 
   tileFavoriteColors: [],
   groutFavoriteColors: [],
-  addTileFavoriteColor: (color) => {
+  addTileFavoriteColor: (color, name) => {
     const { tileFavoriteColors } = get();
-    if (!tileFavoriteColors.includes(color)) {
-      set({ tileFavoriteColors: [...tileFavoriteColors, color] });
+    if (!tileFavoriteColors.some((favorite) => favorite.color === color)) {
+      set({ tileFavoriteColors: [...tileFavoriteColors, { color, name: name.trim() || color }] });
     }
   },
   removeTileFavoriteColor: (color) => {
-    set({ tileFavoriteColors: get().tileFavoriteColors.filter((entry) => entry !== color) });
+    set({ tileFavoriteColors: get().tileFavoriteColors.filter((favorite) => favorite.color !== color) });
   },
-  addGroutFavoriteColor: (color) => {
+  addGroutFavoriteColor: (color, name) => {
     const { groutFavoriteColors } = get();
-    if (!groutFavoriteColors.includes(color)) {
-      set({ groutFavoriteColors: [...groutFavoriteColors, color] });
+    if (!groutFavoriteColors.some((favorite) => favorite.color === color)) {
+      set({ groutFavoriteColors: [...groutFavoriteColors, { color, name: name.trim() || color }] });
     }
   },
   removeGroutFavoriteColor: (color) => {
-    set({ groutFavoriteColors: get().groutFavoriteColors.filter((entry) => entry !== color) });
+    set({ groutFavoriteColors: get().groutFavoriteColors.filter((favorite) => favorite.color !== color) });
   },
 
   favoriteColors: [],
   addFavoriteColor: (color) => {
     const { tileFavoriteColors } = get();
-    if (!tileFavoriteColors.includes(color)) {
-      set({ tileFavoriteColors: [...tileFavoriteColors, color], favoriteColors: [...tileFavoriteColors, color] });
+    if (!tileFavoriteColors.some((favorite) => favorite.color === color)) {
+      set({
+        tileFavoriteColors: [...tileFavoriteColors, { color, name: color }],
+        favoriteColors: [...tileFavoriteColors.map((favorite) => favorite.color), color],
+      });
     }
   },
   removeFavoriteColor: (color) => {
-    const filtered = get().tileFavoriteColors.filter((entry) => entry !== color);
-    set({ tileFavoriteColors: filtered, favoriteColors: filtered });
+    const filtered = get().tileFavoriteColors.filter((favorite) => favorite.color !== color);
+    set({ tileFavoriteColors: filtered, favoriteColors: filtered.map((favorite) => favorite.color) });
   },
 
   tileSize: [1, 1, 1],
@@ -371,7 +383,7 @@ export const useStore = create<AppState>((set, get) => ({
       activeTool: normalized.activeTool ?? "ADD",
       tileFavoriteColors: normalized.tileFavoriteColors,
       groutFavoriteColors: normalized.groutFavoriteColors,
-      favoriteColors: normalized.tileFavoriteColors,
+      favoriteColors: normalized.tileFavoriteColors.map((favorite) => favorite.color),
     });
   },
 
@@ -396,7 +408,7 @@ export const useStore = create<AppState>((set, get) => ({
         activeTool: normalized.activeTool ?? "ADD",
         tileFavoriteColors: normalized.tileFavoriteColors,
         groutFavoriteColors: normalized.groutFavoriteColors,
-        favoriteColors: normalized.tileFavoriteColors,
+        favoriteColors: normalized.tileFavoriteColors.map((favorite) => favorite.color),
         savedProjects: updated,
       });
       return;
@@ -438,7 +450,7 @@ export const useStore = create<AppState>((set, get) => ({
       activeTool: current.activeTool ?? "ADD",
       tileFavoriteColors: current.tileFavoriteColors,
       groutFavoriteColors: current.groutFavoriteColors,
-      favoriteColors: current.tileFavoriteColors,
+      favoriteColors: current.tileFavoriteColors.map((favorite) => favorite.color),
       savedProjects: projects,
     });
   },

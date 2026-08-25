@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ColorResult, SketchPicker } from "react-color";
+import { useCallback, useEffect, useState } from "react";
 import { useStore, Tool } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,14 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ColorPickerDialog } from "@/components/ui/ColorPickerDialog";
 
 type PickerMode = "tile" | "grout" | null;
 
@@ -28,64 +20,7 @@ const TOOL_BUTTONS: Array<{ id: "ADD" | "REMOVE" | "PAINT_TILE" | "PAINT_GROUT" 
   { id: "CAMERA_ORBIT", label: "Rotar Cámara", icon: "🔄" },
 ];
 
-const PRESET_TILE_COLORS = [
-  "#f8fafc",
-  "#e2e8f0",
-  "#cbd5e1",
-  "#94a3b8",
-  "#64748b",
-  "#475569",
-  "#334155",
-  "#1e293b",
-  "#0f172a",
-  "#000000",
-  "#f87171",
-  "#fb7185",
-  "#f43f5e",
-  "#f97316",
-  "#f59e0b",
-  "#eab308",
-  "#84cc16",
-  "#22c55e",
-  "#10b981",
-  "#14b8a6",
-  "#06b6d4",
-  "#0ea5e9",
-  "#3b82f6",
-  "#6366f1",
-  "#8b5cf6",
-  "#a855f7",
-  "#d946ef",
-  "#ec4899",
-  "#d4a373",
-  "#8d6e63",
-];
-
-const PRESET_GROUT_COLORS = [
-  "#ffffff",
-  "#f5f5f4",
-  "#e7e5e4",
-  "#d6d3d1",
-  "#a8a29e",
-  "#78716c",
-  "#57534e",
-  "#44403c",
-  "#292524",
-  "#000000",
-  "#d1d5db",
-  "#9ca3af",
-  "#6b7280",
-  "#4b5563",
-  "#374151",
-  "#1f2937",
-];
 const PERSIST_DEBOUNCE_MS = 200;
-
-function mergePresetColors(favorites: string[], defaults: string[]): string[] {
-  const set = new Set<string>();
-  [...favorites, ...defaults].forEach((entry) => set.add(entry));
-  return [...set];
-}
 
 export default function SettingsSidebar() {
   const voxels = useStore((state) => state.voxels);
@@ -142,16 +77,6 @@ export default function SettingsSidebar() {
     persistCurrentProject,
   ]);
 
-  const tilePresetColors = useMemo(
-    () => mergePresetColors(tileFavoriteColors, PRESET_TILE_COLORS),
-    [tileFavoriteColors]
-  );
-
-  const groutPresetColors = useMemo(
-    () => mergePresetColors(groutFavoriteColors, PRESET_GROUT_COLORS),
-    [groutFavoriteColors]
-  );
-
   const openTilePicker = useCallback(() => {
     setTempColor(activeColor);
     setPickerMode("tile");
@@ -177,15 +102,15 @@ export default function SettingsSidebar() {
     [openTilePicker, openGroutPicker, setActiveTool]
   );
 
-  const handleSavePicker = useCallback(() => {
+  const handleSavePicker = useCallback((color: string) => {
     if (pickerMode === "tile") {
-      setActiveColor(tempColor);
+      setActiveColor(color);
       setActiveTool("PAINT_TILE");
     } else if (pickerMode === "grout") {
-      setGroutColor(tempColor);
+      setGroutColor(color);
     }
     setPickerMode(null);
-  }, [pickerMode, tempColor, setActiveColor, setActiveTool, setGroutColor]);
+  }, [pickerMode, setActiveColor, setActiveTool, setGroutColor]);
 
   const handleCancelPicker = useCallback(() => {
     setPickerMode(null);
@@ -195,7 +120,6 @@ export default function SettingsSidebar() {
     createNewProject();
   }, [createNewProject]);
 
-  const activePickerTitle = pickerMode === "tile" ? "Selector de Color: Tile" : "Selector de Color: Fragua";
   const activeFavorites = pickerMode === "tile" ? tileFavoriteColors : groutFavoriteColors;
 
   return (
@@ -337,76 +261,21 @@ export default function SettingsSidebar() {
         </ScrollArea>
       </aside>
 
-      <Dialog
-        open={pickerMode !== null}
-        onOpenChange={(open) => {
-          if (!open) handleCancelPicker();
+      <ColorPickerDialog
+        mode={pickerMode}
+        color={tempColor}
+        favorites={activeFavorites}
+        onClose={handleCancelPicker}
+        onSave={handleSavePicker}
+        onAddFavorite={(color, name) => {
+          if (pickerMode === "tile") addTileFavoriteColor(color, name);
+          else if (pickerMode === "grout") addGroutFavoriteColor(color, name);
         }}
-      >
-        <DialogContent
-          className="max-w-95 p-4 sm:max-w-105"
-          showCloseButton={false}
-          onOpenAutoFocus={(event) => event.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle className="text-base">{activePickerTitle}</DialogTitle>
-            <DialogDescription>Ajusta color, luego presiona Guardar para aplicar.</DialogDescription>
-          </DialogHeader>
-
-          <div className="overflow-hidden rounded-md border">
-            <SketchPicker
-              color={tempColor}
-              onChange={(color: ColorResult) => setTempColor(color.hex)}
-              disableAlpha
-              width={"100%"}
-              presetColors={pickerMode === "tile" ? tilePresetColors : groutPresetColors}
-            />
-          </div>
-
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Favoritos {pickerMode === "tile" ? "Tile" : "Fragua"}</span>
-              <Button
-                size="xs"
-                variant="outline"
-                onClick={() => {
-                  if (pickerMode === "tile") addTileFavoriteColor(tempColor);
-                  else addGroutFavoriteColor(tempColor);
-                }}
-              >
-                + Añadir actual
-              </Button>
-            </div>
-
-            {activeFavorites.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Sin favoritos en esta categoría.</p>
-            ) : (
-              <div className="grid grid-cols-10 gap-1.5">
-                {activeFavorites.map((color) => (
-                  <button
-                    key={`${pickerMode}-${color}`}
-                    onClick={() => setTempColor(color)}
-                    onContextMenu={(event) => {
-                      event.preventDefault();
-                      if (pickerMode === "tile") removeTileFavoriteColor(color);
-                      else removeGroutFavoriteColor(color);
-                    }}
-                    className="h-7 rounded-md border"
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button onClick={handleCancelPicker} variant="outline">
-              Cancelar
-            </Button>
-            <Button onClick={handleSavePicker}>Guardar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onRemoveFavorite={(color) => {
+          if (pickerMode === "tile") removeTileFavoriteColor(color);
+          else if (pickerMode === "grout") removeGroutFavoriteColor(color);
+        }}
+      />
     </>
   );
 }

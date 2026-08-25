@@ -1,18 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { ColorResult, SketchPicker } from "react-color";
 import { useStore, Tool } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ColorPickerDialog } from "@/components/ui/ColorPickerDialog";
 
 type PickerMode = "tile" | "grout" | null;
 
@@ -67,30 +59,30 @@ export default function Toolbar() {
     [activeColor, groutColor, setActiveTool]
   );
 
-  const handleSavePicker = useCallback(() => {
+  const handleSavePicker = useCallback((color: string) => {
     if (pickerMode === "tile") {
-      setActiveColor(tempColor);
+      setActiveColor(color);
       setActiveTool("PAINT_TILE");
     }
 
     if (pickerMode === "grout") {
-      setGroutColor(tempColor);
+      setGroutColor(color);
       setActiveTool("PAINT_GROUT");
     }
 
     setPickerMode(null);
-  }, [pickerMode, setActiveColor, setActiveTool, setGroutColor, tempColor]);
+  }, [pickerMode, setActiveColor, setActiveTool, setGroutColor]);
 
   return (
     <>
-      <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 gap-1 rounded-2xl border bg-background/85 p-1.5 shadow-2xl backdrop-blur-xl">
+      <div className="fixed right-4 bottom-4 left-4 z-50 flex max-w-max gap-1 overflow-x-auto rounded-2xl border bg-background/85 p-1.5 shadow-2xl backdrop-blur-xl sm:right-auto sm:left-1/2 sm:-translate-x-1/2">
         {TOOLS.map(({ tool, label, icon }) => (
           <Button
             key={tool}
             onClick={() => handleToolClick(tool)}
             variant={activeTool === tool ? "default" : "ghost"}
             className={cn(
-              "flex min-w-14 flex-col items-center justify-center rounded-xl px-2 py-1.5 text-xs",
+              "flex min-w-14 shrink-0 flex-col items-center justify-center rounded-xl px-2 py-1.5 text-xs",
               activeTool === tool && "shadow-md"
             )}
             title={label}
@@ -101,78 +93,21 @@ export default function Toolbar() {
         ))}
       </div>
 
-      <Dialog
-        open={pickerMode !== null}
-        onOpenChange={(open) => {
-          if (!open) setPickerMode(null);
+      <ColorPickerDialog
+        mode={pickerMode}
+        color={tempColor}
+        favorites={activeFavorites}
+        onClose={() => setPickerMode(null)}
+        onSave={handleSavePicker}
+        onAddFavorite={(color, name) => {
+          if (pickerMode === "tile") addTileFavoriteColor(color, name);
+          else if (pickerMode === "grout") addGroutFavoriteColor(color, name);
         }}
-      >
-        <DialogContent
-          className="max-w-95 p-4 sm:max-w-105"
-          showCloseButton={false}
-          onOpenAutoFocus={(event) => event.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle className="text-base">
-              {pickerMode === "tile" ? "Selector de Color: Tile" : "Selector de Color: Fragua"}
-            </DialogTitle>
-            <DialogDescription>Ajusta color, luego presiona Guardar para aplicar.</DialogDescription>
-          </DialogHeader>
-
-          <div className="overflow-hidden rounded-md border">
-            <SketchPicker
-              color={tempColor}
-              onChange={(color: ColorResult) => setTempColor(color.hex)}
-              disableAlpha
-              width={"100%"}
-            />
-          </div>
-
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Favoritos {pickerMode === "tile" ? "Tile" : "Fragua"}</span>
-              <Button
-                size="xs"
-                variant="outline"
-                onClick={() => {
-                  if (pickerMode === "tile") addTileFavoriteColor(tempColor);
-                  else addGroutFavoriteColor(tempColor);
-                }}
-              >
-                + Añadir actual
-              </Button>
-            </div>
-            {activeFavorites.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Sin favoritos en esta categoría.</p>
-            ) : (
-              <div className="grid grid-cols-10 gap-1.5">
-                {activeFavorites.map((color) => (
-                  <button
-                    key={`${pickerMode}-${color}`}
-                    onClick={() => setTempColor(color)}
-                    onContextMenu={(event) => {
-                      event.preventDefault();
-                      if (pickerMode === "tile") removeTileFavoriteColor(color);
-                      else removeGroutFavoriteColor(color);
-                    }}
-                    className="h-7 rounded-md border"
-                    style={{ backgroundColor: color }}
-                    aria-label={`Seleccionar color favorito ${color}`}
-                    title={`${color} (clic derecho elimina)`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button onClick={() => setPickerMode(null)} variant="outline">
-              Cancelar
-            </Button>
-            <Button onClick={handleSavePicker}>Guardar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onRemoveFavorite={(color) => {
+          if (pickerMode === "tile") removeTileFavoriteColor(color);
+          else if (pickerMode === "grout") removeGroutFavoriteColor(color);
+        }}
+      />
     </>
   );
 }
